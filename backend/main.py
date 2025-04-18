@@ -3,9 +3,9 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from huggingface_hub import snapshot_download
 from llama_cpp import Llama
 import os, shutil
-from models.model_request import ModelRequest
-from backend.services.ai_services.path.ai_model_path_service import AiModelPath
-from backend.services.ai_services.crud.ai_model_crud_service import AiModelCrud
+from schemas.model_request import ModelRequest
+from backend.utils.path_handler import AiModelPath
+from backend.crud.ai_model_crud_service import AiModelCrud
 
 app = FastAPI()
 loaded_models = {}
