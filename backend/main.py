@@ -4,15 +4,13 @@ from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 from huggingface_hub import snapshot_download
 from llama_cpp import Llama
 import os, shutil
+from models.model_request import ModelRequest
+
 
 app = FastAPI()
 DEFAULT_MODEL_DIR = "./models"
 loaded_models = {}
 
-class ModelRequest(BaseModel):
-    model_name: str
-    save_path: str = None
-    model_format: str = "transformers"  # "transformers" or "gguf"
 
 def get_model_path(model_name, save_path):
     return save_path if save_path else os.path.join(DEFAULT_MODEL_DIR, model_name)
