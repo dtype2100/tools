@@ -5,19 +5,15 @@ from huggingface_hub import snapshot_download
 from llama_cpp import Llama
 import os, shutil
 from models.model_request import ModelRequest
-
+from services.ai_model_path import AiModelPath
 
 app = FastAPI()
-DEFAULT_MODEL_DIR = "./models"
+apath = AiModelPath()
 loaded_models = {}
-
-
-def get_model_path(model_name, save_path):
-    return save_path if save_path else os.path.join(DEFAULT_MODEL_DIR, model_name)
 
 @app.post("/download")
 def download_model(req: ModelRequest):
-    model_path = get_model_path(req.model_name, req.save_path)
+    model_path = apath.get_model_path(req.model_name, req.save_path)
 
     if req.model_format == "gguf":
         if not os.path.exists(model_path):
@@ -36,7 +32,7 @@ def download_model(req: ModelRequest):
 
 @app.post("/load")
 def load_model(req: ModelRequest):
-    model_path = get_model_path(req.model_name, req.save_path)
+    model_path = apath.get_model_path(req.model_name, req.save_path)
 
     if req.model_name in loaded_models:
         return {"message": f"{req.model_name} already loaded."}
@@ -80,7 +76,7 @@ def infer(req: ModelRequest, prompt: str):
 
 @app.post("/delete")
 def delete_model(req: ModelRequest):
-    model_path = get_model_path(req.model_name, req.save_path)
+    model_path = apath.get_model_path(req.model_name, req.save_path)
     if os.path.exists(model_path):
         shutil.rmtree(model_path, ignore_errors=True)
     loaded_models.pop(req.model_name, None)
@@ -88,10 +84,11 @@ def delete_model(req: ModelRequest):
 
 @app.get("/list_models")
 def list_models():
-    if not os.path.exists(DEFAULT_MODEL_DIR):
+    model_dir = apath.DEFAULT_MODEL_DIR
+    if not os.path.exists(model_dir):
         return {"models": []}
     models = [
-        d for d in os.listdir(DEFAULT_MODEL_DIR)
-        if os.path.isdir(os.path.join(DEFAULT_MODEL_DIR, d))
+        d for d in os.listdir(model_dir)
+        if os.path.isdir(os.path.join(model_dir, d))
     ]
     return {"models": models}
