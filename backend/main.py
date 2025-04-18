@@ -3,6 +3,7 @@ import os, shutil
 from schemas.model_request import ModelRequest
 from backend.utils.path_handler import AiModelPath
 from backend.crud.ai_download import AiModelDownload
+from backend.crud.ai_delete import AiModelDelete
 from backend.services.ai_load import AiLoad
 
 app = FastAPI()
@@ -13,8 +14,8 @@ def download_model(req: ModelRequest):
     apath = AiModelPath()
     model_path = apath.get_model_path(req.model_name, req.save_path)
     try:
-        amcrud = AiModelDownload(req.model_name, model_path, req.model_format)
-        return amcrud.model_download()
+        amdl = AiModelDownload(req.model_name, model_path, req.model_format)
+        return amdl.model_download()
     except Exception as e:
         return {"error": str(e)}
 
@@ -24,8 +25,8 @@ def load_model(req: ModelRequest):
     try:
         apath = AiModelPath()
         model_path = apath.get_model_path(req.model_name, req.save_path)
-        amcrud = AiLoad(req.model_name, model_path, req.model_format)
-        return amcrud.model_load(loaded_models)
+        aload = AiLoad(req.model_name, model_path, req.model_format)
+        return aload.model_load(loaded_models)
     except Exception as e:
         return {"error": str(e)}
 
@@ -49,8 +50,7 @@ def infer(req: ModelRequest, prompt: str):
 def delete_model(req: ModelRequest):
     apath = AiModelPath()
     model_path = apath.get_model_path(req.model_name, req.save_path)
-    if os.path.exists(model_path):
-        shutil.rmtree(model_path, ignore_errors=True)
+    AiModelDelete(model_path).delete_model()
     loaded_models.pop(req.model_name, None)
     return {"message": f"{req.model_name} deleted."}
 
