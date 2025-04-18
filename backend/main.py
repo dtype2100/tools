@@ -4,56 +4,32 @@ from huggingface_hub import snapshot_download
 from llama_cpp import Llama
 import os, shutil
 from models.model_request import ModelRequest
-from services.ai_model_path import AiModelPath
+from services.ai_model_path.ai_model_path import AiModelPath
+from services.ai_model_crud.ai_model_crud import AiModelCrud
 
 app = FastAPI()
-apath = AiModelPath()
 loaded_models = {}
 
 @app.post("/download")
 def download_model(req: ModelRequest):
+    apath = AiModelPath()
     model_path = apath.get_model_path(req.model_name, req.save_path)
 
-    if req.model_format == "gguf":
-        if not os.path.exists(model_path):
-            return {"error": f"GGUF 파일이 {model_path} 에 존재하지 않습니다. 수동으로 복사하세요."}
-        return {"message": f"{req.model_name} (GGUF) is ready at {model_path}"}
-
-    if os.path.exists(model_path):
-        return {"message": f"{req.model_name} already exists at {model_path}"}
-
     try:
-        os.makedirs(model_path, exist_ok=True)
-        snapshot_download(req.model_name, local_dir=model_path)
-        return {"message": f"{req.model_name} downloaded to {model_path}"}
+        amcrud = AiModelCrud(req.model_name, model_path, req.model_format)
+        return amcrud.model_download()
     except Exception as e:
         return {"error": str(e)}
 
+
 @app.post("/load")
 def load_model(req: ModelRequest):
-    model_path = apath.get_model_path(req.model_name, req.save_path)
-
-    if req.model_name in loaded_models:
-        return {"message": f"{req.model_name} already loaded."}
-
-    if req.model_format == "gguf":
-        if not os.path.exists(model_path):
-            return {"error": f"GGUF 파일이 {model_path} 에 없습니다."}
-        try:
-            llm = Llama(model_path=model_path, n_ctx=2048, n_threads=8)
-            loaded_models[req.model_name] = {"type": "gguf", "pipe": llm}
-            return {"message": f"{req.model_name} (GGUF) loaded from {model_path}"}
-        except Exception as e:
-            return {"error": str(e)}
-
-    if not os.path.exists(model_path):
-        return {"error": f"{model_path} 경로에 transformers 모델이 없습니다. 먼저 다운로드하세요."}
     try:
-        tokenizer = AutoTokenizer.from_pretrained(model_path)
-        model = AutoModelForCausalLM.from_pretrained(model_path)
-        pipe = pipeline("text-generation", model=model, tokenizer=tokenizer)
-        loaded_models[req.model_name] = {"type": "transformers", "pipe": pipe}
-        return {"message": f"{req.model_name} loaded from {model_path}"}
+        apath = AiModelPath()
+        model_path = apath.get_model_path(req.model_name, req.save_path)
+        
+        amcrud = AiModelCrud(req.model_name, model_path, req.model_format)
+        return amcrud.model_load(loaded_models)
     except Exception as e:
         return {"error": str(e)}
 
@@ -75,6 +51,7 @@ def infer(req: ModelRequest, prompt: str):
 
 @app.post("/delete")
 def delete_model(req: ModelRequest):
+    apath = AiModelPath()
     model_path = apath.get_model_path(req.model_name, req.save_path)
     if os.path.exists(model_path):
         shutil.rmtree(model_path, ignore_errors=True)
@@ -83,6 +60,7 @@ def delete_model(req: ModelRequest):
 
 @app.get("/list_models")
 def list_models():
+    apath = AiModelPath()
     model_dir = apath.DEFAULT_MODEL_DIR
     if not os.path.exists(model_dir):
         return {"models": []}
