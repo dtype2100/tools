@@ -1,11 +1,9 @@
 from fastapi import FastAPI
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
-from huggingface_hub import snapshot_download
-from llama_cpp import Llama
 import os, shutil
 from schemas.model_request import ModelRequest
 from backend.utils.path_handler import AiModelPath
-from backend.crud.ai_model_crud_service import AiModelCrud
+from backend.crud.ai_download import AiModelDownload
+from backend.services.ai_load import AiLoad
 
 app = FastAPI()
 loaded_models = {}
@@ -15,7 +13,7 @@ def download_model(req: ModelRequest):
     apath = AiModelPath()
     model_path = apath.get_model_path(req.model_name, req.save_path)
     try:
-        amcrud = AiModelCrud(req.model_name, model_path, req.model_format)
+        amcrud = AiModelDownload(req.model_name, model_path, req.model_format)
         return amcrud.model_download()
     except Exception as e:
         return {"error": str(e)}
@@ -26,7 +24,7 @@ def load_model(req: ModelRequest):
     try:
         apath = AiModelPath()
         model_path = apath.get_model_path(req.model_name, req.save_path)
-        amcrud = AiModelCrud(req.model_name, model_path, req.model_format)
+        amcrud = AiLoad(req.model_name, model_path, req.model_format)
         return amcrud.model_load(loaded_models)
     except Exception as e:
         return {"error": str(e)}
