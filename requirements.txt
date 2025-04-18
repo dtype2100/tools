@@ -1,0 +1,14 @@
+# API 서버
+fastapi
+uvicorn[standard]
+
+# Streamlit UI
+streamlit
+
+# Hugging Face 모델 다운로드 및 서빙
+transformers
+huggingface_hub
+
+# AI 프레임워크
+torch
+llama-cpp-python
